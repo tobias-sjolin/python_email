@@ -5,4 +5,4 @@ Simple Python email script
 
 run with 
 
-python python_email.py <full path to filename>
+<code>python python_email.py [full path to filename]</code>
