@@ -10,8 +10,15 @@ import StringIO
 import subprocess
 import os
 import time
+import commands
+import smtplib, os, sys
 from datetime import datetime
 from PIL import Image
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEBase import MIMEBase
+from email.MIMEText import MIMEText
+from email.Utils import COMMASPACE, formatdate
+from email import Encoders
 
 # Motion detection settings:
 # Threshold          - how much a pixel has to change by to be marked as "changed"
@@ -82,9 +89,10 @@ def saveImage(settings, width, height, quality, diskSpaceToReserve):
     time = datetime.now()
     filename = filepath + "/" + filenamePrefix + "-%04d%02d%02d-%02d%02d%02d.jpg" % (time.year, time.month, time.day, time.hour, time.minute, time.second)
     subprocess.call("raspistill %s -w %s -h %s -t 200 -e jpg -q %s -n -o %s" % (settings, width, height, quality, filename), shell=True)
-    filename = filepath + "/" + filenamePrefix + "-%04d%02d%02d-%02d%02d%02d.h264" % (time.year, time.month, time.day, time.hour, time.minute, time.second)
-    subprocess.call("raspivid -o %s" % (filename), shell=True)
-    print "Captured %s" % filename
+    send_mail('tobias@sjolin.se', ['tobias@sjolin.se'], 'Motion detected!', 'Video:', filename,"mail.sjolin.se")
+    filename_vid = filepath + "/" + filenamePrefix + "-%04d%02d%02d-%02d%02d%02d.h264" % (time.year, time.month, time.day, time.hour, time.minute, time.second)
+    subprocess.call("raspivid -o %s" % (filename_vid), shell=True)
+    print "Captured image: %s and video: %s" % (filename,filename_vid) 
 
 # Keep free space above given level
 def keepDiskSpaceFree(bytesToReserve):
@@ -95,6 +103,29 @@ def keepDiskSpaceFree(bytesToReserve):
                 print "Deleted %s/%s to avoid filling disk" % (filepath,filename)
                 if (getFreeSpace() > bytesToReserve):
                     return
+
+def send_mail(send_from, send_to, subject, text, files=[], server="localhost"):
+    assert type(send_to)==list
+    assert type(files)==list
+
+    msg = MIMEMultipart()
+    msg['From'] = send_from
+    msg['To'] = COMMASPACE.join(send_to)
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = subject
+
+    msg.attach( MIMEText(text) )
+
+    for f in files:
+        part = MIMEBase('application', "octet-stream")
+        part.set_payload( open(f,"rb").read() )
+        Encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
+        msg.attach(part)
+
+    smtp = smtplib.SMTP(server)
+    smtp.sendmail(send_from, send_to, msg.as_string())
+    smtp.close()
 
 # Get available disk space
 def getFreeSpace():
@@ -163,4 +194,3 @@ while (True):
     # Swap comparison buffers
     image1 = image2
     buffer1 = buffer2
-
