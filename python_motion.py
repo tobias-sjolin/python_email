@@ -89,7 +89,7 @@ def saveImage(settings, width, height, quality, diskSpaceToReserve):
     time = datetime.now()
     filename = filepath + "/" + filenamePrefix + "-%04d%02d%02d-%02d%02d%02d.jpg" % (time.year, time.month, time.day, time.hour, time.minute, time.second)
     subprocess.call("raspistill %s -w %s -h %s -t 200 -e jpg -q %s -n -o %s" % (settings, width, height, quality, filename), shell=True)
-    send_mail('tobias@sjolin.se', ['tobias@sjolin.se'], 'Motion detected!', 'Video:', filename,"mail.sjolin.se")
+    send_mail('tobias@sjolin.se', ['tobias@sjolin.se'], 'Motion detected!', 'Video:', [filename],"mail.sjolin.se")
     filename_vid = filepath + "/" + filenamePrefix + "-%04d%02d%02d-%02d%02d%02d.h264" % (time.year, time.month, time.day, time.hour, time.minute, time.second)
     subprocess.call("raspivid -o %s" % (filename_vid), shell=True)
     print "Captured image: %s and video: %s" % (filename,filename_vid) 
